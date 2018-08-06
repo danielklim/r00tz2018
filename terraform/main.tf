@@ -126,9 +126,8 @@ resource "aws_instance" "ubuntu" {
   }
 }
 
-https://aws.amazon.com/marketplace/fulfillment?productId=8b7fdfe3-8cd5-43cc-8e5e-4e0e7f4139d5&ref_=dtl_psb_continue&region=us-east-1
+# https://aws.amazon.com/marketplace/fulfillment?productId=8b7fdfe3-8cd5-43cc-8e5e-4e0e7f4139d5&ref_=dtl_psb_continue&region=us-east-1
 resource "aws_instance" "kali" {
-	# username: r00tz2018
 	# kali 2018.1
 	ami = "ami-10e00b6d"
 	instance_type = "t2.small"

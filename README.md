@@ -59,7 +59,7 @@ Nmap is a tool used for network discovery and scanning. In this case, we already
 nmap [target internal IP] -A -p20-450,3389
 ```
 
-Ok, we see that ports 80, and 3389 are open. These ports are commonly associated with HTTP and RDP. On our target system there are one or more vulnerable services on each port. We will investigate each in turn.
+Ok, we see that ports 22, 80, and 3389 are open. These ports are commonly associated with SSH, HTTP and RDP. On our target system there are one or more vulnerable services on each port. We will investigate each in turn.
 
 ## What's our goal?
 
@@ -81,3 +81,4 @@ You should see a login screen. However, we are stopped at the gates because we d
 
 # Respond
 
+# Notes
