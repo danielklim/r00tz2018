@@ -112,10 +112,10 @@ resource "aws_instance" "ubuntu" {
     destination = "/home/ubuntu/nginx.conf"
   }
 
-  provisioner "file" {
-    source      = "ubuntu/xrdp.ini"
-    destination = "/home/ubuntu/xrdp.ini"
-  }
+  # provisioner "file" {
+  #   source      = "ubuntu/xrdp.ini"
+  #   destination = "/home/ubuntu/xrdp.ini"
+  # }
 
   provisioner "file" {
     source      = "ubuntu/drupal-pewpewkittens.sql"
@@ -156,18 +156,20 @@ resource "aws_instance" "kali" {
     user = "ec2-user"
     private_key = "${file("${var.ssh_private_key}")}"
   }
+  # provisioner "file" {
+  #   source      = "ubuntu/xrdp.ini"
+  #   destination = "/root/xrdp.ini"
+  # }
+
+  provisioner "file" {
+    source      = "kali/setup.sh"
+    destination = "/root/setup.sh"
+  }
 
   provisioner "remote-exec" {
     inline = [
-      # "sudo su",
-      "(echo \"${var.kali_user_password}\"; echo \"${var.kali_user_password}\") | sudo passwd ec2-user",
-      # "sudo apt install ftp -y",
-      # "sudo sed -i '1s@^@covfefeinthemorning\\n@' /usr/share/wordlists/rockyou.txt",
-      "sudo sed -i '/PasswordAuthentication/d' /etc/ssh/sshd_config",
-      # "useradd r00tz2018",
-      # "(echo \"${var.kali_user_password}\"; echo \"${var.kali_user_password}\") | passwd r00tz2018",
-      "sudo bash -c \"echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config\"",
-      "sudo systemctl restart sshd"
+      "chmod 700 /home/root/setup.sh",
+      "sudo bash /home/root/setup.sh"
     ]
   }
 }
@@ -308,6 +310,13 @@ resource "aws_security_group" "r00tz2018_ubuntu" {
     cidr_blocks = ["0.0.0.0/0"]
   } 
 
+  ingress {
+    from_port = 5901
+    to_port = 5901
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  } 
+
   egress {
     from_port = 0
     to_port = 0
@@ -340,6 +349,13 @@ resource "aws_security_group" "r00tz2018_kali" {
 		protocol = "tcp"
 		cidr_blocks = ["0.0.0.0/0"]
 	}	
+
+  ingress {
+    from_port = 5901
+    to_port = 5901
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  } 
 
 	egress {
 		from_port = 0
