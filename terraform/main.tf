@@ -15,10 +15,10 @@ variable "aws_secret_key" {
   type = "string"
 }
 
-# variable "win_admin_password" {
-#   description = "Windows admin password."
-#   type = "string"
-# }
+variable "win2k8_admin_password" {
+  description = "Windows admin password."
+  type = "string"
+}
 
 variable "kali_user_password" {
   description = "Password for users on Kali boxes."
@@ -36,7 +36,7 @@ variable "ssh_private_key" {
 }
 
 variable "num_boxes" {
-  description = "Number of kali-windows pairs to generate."
+  description = "Number of kali-ubuntu pairs to generate."
   type = "string"
   default = 1
 }
@@ -57,6 +57,15 @@ output "all_the_ips" {
     aws_instance.ubuntu.*.private_ip)}"
     # aws_instance.win2k8.*.public_ip,
     # aws_instance.win2k8.*.private_ip)}"
+}
+
+output "win2k8" {
+  # value = "rdesktop -g 1600x900 -u Administrator -x l ${aws_instance.purgenol_win2k8r2.public_ip}"
+  value = "${aws_instance.win2k8.public_ip} ${aws_instance.win2k8.private_ip} ${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
+
+
+  # "${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
+  # password = "${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
 }
 
 # output "connect_cmd" {
@@ -163,6 +172,57 @@ resource "aws_instance" "kali" {
   }
 }
 
+resource "aws_instance" "win2k8" {
+  count = 1
+  ami = "ami-a2bd89dd"
+  instance_type = "t2.medium"
+  vpc_security_group_ids = ["${aws_security_group.r00tz2018_win2k8.id}"]
+  subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
+  key_name = "${aws_key_pair.r00tz2018_key.id}"
+  get_password_data = "true"
+  private_ip = "10.0.0.50"
+
+  tags {
+    Name = "R00TZ2018_WIN2K8"
+  }
+
+  # https://www.terraform.io/docs/provisioners/connection.html
+  # https://github.com/dhoer/terraform_examples/blob/master/aws-winrm-instance/main.tf
+  # connection {
+  #   type     = "winrm"
+  # }
+
+#   provisioner "remote-exec"  {
+#     inline = ["echo hello world"]
+#     connection {
+#         type = "winrm"
+#         user     = "Administrator"
+#         password = "${var.win2k8_admin_password}"
+#         # password = "${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
+#         timeout = "5m"
+#     }
+#   }
+
+#   user_data = <<EOF
+# <script>
+#   winrm quickconfig -q & winrm set winrm/config @{MaxTimeoutms="1800000"} & winrm set winrm/config/service @{AllowUnencrypted="true"} & winrm set winrm/config/service/auth @{Basic="true"}
+# </script>
+# <powershell>
+#   netsh advfirewall firewall add rule name="WinRM in" protocol=TCP dir=in profile=any localport=5985 remoteip=any localip=any action=allow
+#   # Set Administrator password
+#   $admin = [adsi]("WinNT://./administrator, user")
+#   $admin.psbase.invoke("SetPassword", "${var.win2k8_admin_password}")
+# </powershell>
+# EOF
+
+#   user_data = <<EOF
+# <powershell>
+# $admin = [adsi]("WinNT://./administrator, user")
+# $admin.psbase.invoke("SetPassword", "${var.win2k8_admin_password}")
+# </powershell>
+# EOF
+}
+
 # https://www.terraform.io/docs/providers/aws/r/vpc.html
 resource "aws_vpc" "r00tz2018_vpc" {
 	cidr_block       = "10.0.0.0/24"
@@ -181,6 +241,46 @@ resource "aws_key_pair" "r00tz2018_key" {
 # https://www.terraform.io/docs/providers/aws/r/internet_gateway.html
 resource "aws_internet_gateway" "r00tz2018_ig" {
 	vpc_id = "${aws_vpc.r00tz2018_vpc.id}"
+}
+
+resource "aws_security_group" "r00tz2018_win2k8" {
+  name = "r00tz2018_win2k8"
+  description = "r00tz2018_win2k8"
+  vpc_id = "${aws_vpc.r00tz2018_vpc.id}"
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 0
+    to_port = 0
+    protocol = -1
+    cidr_blocks = ["10.0.0.0/24"]
+  }
+
+  ingress {
+    from_port = 3389
+    to_port = 3389
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  } 
+
+  ingress {
+    from_port   = 5985
+    to_port     = 5986
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "r00tz2018_ubuntu" {

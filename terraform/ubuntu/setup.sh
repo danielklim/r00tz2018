@@ -63,9 +63,7 @@ export XDG_CONFIG_DIRS=/etc/xdg/xdg-ubuntu:/etc/xdg
 EOF
 
 ######
-DEBIAN_FRONTEND=noninteractive apt-get -yq install wireshark ts
-hark
-apt-get -qq install -y tshark wireshark
+DEBIAN_FRONTEND=noninteractive apt-get -yq install wireshark tshark
 
 cd /home/ubuntu
 screen -dmS test
