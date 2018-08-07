@@ -125,7 +125,9 @@ rdesktop [target external IP]
 
 You should see a login screen. However, we are stopped at the gates because we don't have credentials for the box. At this point, we know there is something potentially interesting here but we don't know how interesting, or how to get that interesting stuff. For now, our goal is to answer these questions. We will do so by exploiting vulnerabilities in the services hosted by this box.
 
-# Exploit
+# Exploit-Http
+
+# Exploit-RCE
 
 # Surveil
 
