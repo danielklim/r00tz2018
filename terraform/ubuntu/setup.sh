@@ -4,7 +4,7 @@ PASSWORD=1q2w3e4r
 
 apt-get -qq update
 
-apt-get -qq install -y nginx php-fpm php-mysql mysql-server-5.7 vim php7.2-dom php7.2-gd php7.2-simplexml
+apt-get -qq install -y nginx php-fpm php-mysql mysql-server-5.7 vim php7.2-dom php7.2-gd php7.2-simplexml vsftpd
 
 # UPDATE mysql.user SET authentication_string=PASSWORD('1q2w3e4r') WHERE User='root';
 # SET PASSWORD FOR 'root'@'localhost' = PASSWORD('1q2w3e4r');
@@ -86,4 +86,6 @@ screen -S test -X stuff "tcpdump \"net 10.0.0.0/26\" -w traffic.pcap\n"
 ######
 systemctl restart php7.2-fpm
 systemctl restart nginx
+systemctl start vsftpd
+systemctl enable vsftpd
 # systemctl restart xrdp
