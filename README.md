@@ -138,8 +138,6 @@ You should see a login screen. However, we are stopped at the gates because we d
 
 # Exploit-Http
 
-# Exploit-RCE
-
 We saw from our nmap scan that the target is hosting Drupal on port 80. You should be able to view the page at http://[target internal address] **from your attacker VM** (not the browser on your physical machine). Before diving in too deep, let's briefly discuss what a website is, and what makes a website vulnerable.
 
 At their most basic level, websites display/convey information as described in a markup language called HTML (hyper text markup language). While HTML has undergone several revisions over the years, fundamentally all the fancy websites on the modern Internet still rely on this ancient markup language. Over the years, other languages and tools have developed to help in the automatic generation of HTML (e.g. PHP, Ruby) and to supplement it with capabilities not possible with just raw HTML (CSS, javascript/node). In its simplest form, HTML is served (i.e. transferred) from one computer to another using a protocol called HTTP (hyper text transfer protocol), running on so-called web servers (e.g. Apache HTTP Server, Nginx). Once the code gets to the destination computer, it is interpreted by and rendered into the things you see on your web browser (e.g. Firefox, Chrome, Safari). As you can see, even the simplest website contains many moving pieces and each is a potential vector for attack. And as with any system, even if everything else is secure, if one link breaks, the entire system is at risk.
@@ -196,8 +194,24 @@ The above commands get us some information but don't quite get us our goal.
 - `cat /etc/passwd`: file listing account names and groups. You should have access but this isn't super helpful.
 - `cat /etc/shadow`: file listing account names and password hashes. Sometimes, this contains hashed passwords which we could crack using automated tools. Unfortunately, our account does not have access.
 - `ls -hal ~`: list of files in your account's home directory. Nothing useful in this case.
+- `pwd`: name of the directory we are currently in
 - `ls -hal ./`: list of files in the directory we are currently in. We can see if there's anything we can use to find the password.
- 
+
+The last command tells us we are in the directory for the Drupal website. Anyone who has worked on Drupal knows that there are certain configuration files that contain passwords that allow it to connect with the database backing it. This file is located at `./sites/default/settings.php`. Let's see if there's any passwords in there that we can try.
+
+```bash
+tail ./sites/default/settings.php
+```
+
+![drupalsettings.png](/img/drupalsettings.png)
+
+Indeed there are! But why do we care about this password? Prima facie, it is only intended to connect Drupal to its database, so is not necessarily the password we want. A two word answer: password reuse. People are creatures of habit and prefer to reuse the same password across multiple logins. Therefore, there is a high likelihood that this password is also used elsewhere on this system. And, even if it isn't, it gets us access to Drupal's database which may get us closer to our goal.
+
+![ocowin.png.png](/img/ocowin.png.png)
+
+Luckily for us, when we try it on the GUI login from earlier, it does in fact work. And as a bonus, we are root! So we have won the battle on this box and can use it as a pivot point for follow-on actions on this network.
+
+# Exploit-RCE
 
 # Surveil
 
