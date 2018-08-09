@@ -269,7 +269,7 @@ Now we have a fully powered meterpreter shell on the target! While not something
 # Surveil
 
 The attackers have breached our network! We need to discover how, and more importantly, why they did it. We are going to gather information from a few different sources to trace their steps and patch the holes they used to gain access. Lets start by opening the .pcap file we captured via wireshark. Begin exploring the interface and take note of anything interesting. There is a lot of information in these packet captures so lets break it down. The first thing you should notice is a large group of red and grey packets. The source of the grey packets will be your box and source of the red boxes is the target. If you look at the info column you'll see the flags for the grey packets are SYN and the red has RST,ACK. Additionally, if you look at the destination port on all the grey packets you might notice that all the destination ports are seemingly random. Lastly, the time between the packets sent is very small. With all these details we can ascertain that this is a SYN scan on our box. If you look at the SYN packet sent to port 22, instead of sending back a RST, our box responds with a SYN,ACK. These differences are what allow nmap to determine which ports are open/listening as in, there is a process or program using that port to establish communication.
-![synscan.png](/img/synscan.png)
+![synscan.png](/img/synscan.PNG)
 
 # Protect
 
