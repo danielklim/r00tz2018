@@ -207,7 +207,7 @@ tail ./sites/default/settings.php
 
 Indeed there are! But why do we care about this password? Prima facie, it is only intended to connect Drupal to its database, so is not necessarily the password we want. A two word answer: password reuse. People are creatures of habit and prefer to reuse the same password across multiple logins. Therefore, there is a high likelihood that this password is also used elsewhere on this system. And, even if it isn't, it gets us access to Drupal's database which may get us closer to our goal.
 
-![ocowin.png.png](/img/ocowin.png.png)
+![ocowin.png](/img/ocowin.png)
 
 Luckily for us, when we try it on the GUI login from earlier, it does in fact work. And as a bonus, we are root! So we have won the battle on this box and can use it as a pivot point for follow-on actions on this network.
 
@@ -218,9 +218,7 @@ With our newfound access we can do more in-depth analysis of what protocols and 
 netstat -ltnup
 ```
 
-
 This will display all the open sockets on our system. Are there any interesting ports open? How about port 21? That port is designated as the port for FTP, or File Transfer Protocol. You should see the PID and name of the process that is listening on port 21 at the end of our output. Now that we know we are serving data to clients maybe we can find a vulnerability that allows us to compromise their system. Let's say we analyze some traffic data and are able to determine that the hosts on this network use an ftp client called FTPShell 6.7. What can we do with that information? 
-
 
 Navigate to www.exploit-db.com and search for FTPShell Client. There are a slew of exploits for this client! Lets look at the exploit for the Client version 6.7. We can see that there is a big bytecode blob made with a tool called msfvenom that opens calc.exe on the victim. Opening calc.exe however, does not gain us additional access to the network. We want to open a shell like the one we have on the pivot box! On our Kali box, run the following command:
 ```
@@ -256,7 +254,6 @@ run
 ```
 It should look something like this:
 ![listener.png](/img/listener.png)
-
 
 Now lets run that exploit on the pivot box. 
 ```

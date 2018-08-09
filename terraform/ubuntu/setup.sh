@@ -53,7 +53,6 @@ apt-get -yqq install xfce4 xfce4-goodies tightvncserver
 
 mkdir -p /root/.vnc
 vncpasswd -f <<< $PASSWORD > "/root/.vnc/passwd"
-# (echo "1q2w3e4r") | vncpasswd -f > ~/.vnc/passwd
 chmod 600 ~/.vnc/passwd
 
 cat << EOF > /root/.vnc/xstartup
@@ -65,8 +64,6 @@ startxfce4 &
 EOF
 
 vncserver -geometry 1600x1200
-
-# cp xstartup,,,
 
 # https://www.hiroom2.com/2018/04/29/ubuntu-1804-xrdp-gnome-en/
 # cat <<EOF > ~/.xsessionrc

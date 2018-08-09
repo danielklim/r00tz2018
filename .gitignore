@@ -3,3 +3,4 @@ notes.txt
 *.tfstate
 *.backup
 terraform/.terraform/**
+*.lock.info
