@@ -41,13 +41,7 @@ Each workstation should have assigned to it a set of 4 IP addresses.
 
 If you are using your own hardware, just ask one of the facilitators for a set of IPs to work with.
 
-When you are ready, SSH into your workstation using either (1) the provided private key, or (2) the password: cybercyber123
-
-For GUI based SSH clients, just fill in the appropriate blanks. For command line clients (CLI), the syntax will look something like:
-
-```bash
-ssh ec2-user@[your external IP]
-```
+When you are ready, start VNC Viewer and connect to the "Attacker VM" by typing in `[your external IP]:5901` and hitting the enter key. For the password use `cybercyber123`
 
 # Scan
 
@@ -291,9 +285,34 @@ Lastly, lets look at the FTP attack. The first thing you should notice is that u
 ![ftp_pwn.png](/img/ftp_pwn.PNG)
 We see some normal client server communication but then suddenly a big blob of nonsense followed by "is the current directory". This is what the shell code we generated previously looks like when displayed as ascii. The average person will not know that the bits they are looking at are in face the bytecode for a meterpreter shell. It is very easy to see what happened here. We can see the client reach out to the server and receive a malicious payload back under the guise of a simple 'ls' command. 
 
+# Protect & Respond
 
-# Protect
+# Takeaways 
 
-# Respond
+At this point, we have seen both sides of a cyber attack, both as the attacker and the defender. And while this example was relatively simple, it is still representative of the major parts of a cyber attack. So what are some takeaways?
 
-# Notes
+*As the attacker*, in order to be successful, you needed:
+
+- information about the target 
+- a vulnerability you could exploit
+- skills to implement the exploit
+- resources to deliver the exploit
+- a meaningful, obtainable goal on the target
+
+For those who read about cyber security theory, these requirements should look familiar. It and its variants go by names like the "Cyber Kill Chain" and the "Diamond Model." While there are some differences between such models, fundamentally, they all lead to the same conclusion we can reach from our experience. That is that successful attacks are possible only when a whole set of requirements are satisfied.
+
+![cyber-kill-chain-infographic-100741032-orig.jpg](/img/cyber-kill-chain-infographic-100741032-orig.jpg)
+*[© 2018 Lockheed Martin Corporation](https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html)*
+
+![dsdm_shirtback.png](/img/dsdm_shirtback.png)
+*[© 2018 Threat Connect](https://www.threatconnect.com/blog/diamond-model-threat-intelligence-star-wars/)*
+
+If you couldn't get information about what ports were open, would you have been able to attack? If the web server had not been running Drupal, would there have been a vulnerability to go after? If you hadn't had the skills to find and use an exploit for that vulnerability, could the attack have proceeded? In other words, break a link in the chain (or remove a vertex in the diamond if you prefer) and the attack fails.
+
+This takeaway leads directly to our lessons *as the defender*. If the above steps are the links/vertices needed to successfully attack, successfully defend by denying them to the attacker:
+
+- deny/obfuscate information about your assets
+- patch known vulnerabilites
+- encrypt/don't store valuables in attackable assets
+
+Cyber security is a cat and mouse game. Many folks like to focus only on the attack, or only on the defense, but that misses the point. The point is not to be one or the other, but to win the game, and to do so, you need to think about it from both sides as we have done in this workshop.

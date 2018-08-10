@@ -41,13 +41,25 @@ variable "num_boxes" {
   default = 1
 }
 
-##### output
+variable "win2k8_private_ip" {
+  description = "win2k8 private ip"
+  type = "string"
+  default = "10.0.0.20"
+}
 
-# output "all_the_ips" {
-#   value = "${formatlist("ubuntu ext, ubuntu int: %s, %s, %s, %s", 
-#     aws_instance.ubuntu.*.public_ip,
-#     aws_instance.ubuntu.*.private_ip)}"
-# }
+variable "ubuntu_base_private_ip" {
+  description = "ubuntu private ip base"
+  type = "string"
+  default = "10.0.0.10"
+}
+
+variable "kali_base_private_ip" {
+  description = "kali private ip base"
+  type = "string"
+  default = "10.0.0.110"
+}
+
+##### output
 
 output "all_the_ips" {
   value = "${formatlist("kali ext, kali int, ubuntu ext, ubuntu int: %s, %s, %s, %s", 
@@ -55,22 +67,11 @@ output "all_the_ips" {
     aws_instance.kali.*.private_ip,
     aws_instance.ubuntu.*.public_ip,
     aws_instance.ubuntu.*.private_ip)}"
-    # aws_instance.win2k8.*.public_ip,
-    # aws_instance.win2k8.*.private_ip)}"
 }
 
 output "win2k8" {
-  # value = "rdesktop -g 1600x900 -u Administrator -x l ${aws_instance.purgenol_win2k8r2.public_ip}"
   value = "${aws_instance.win2k8.public_ip} ${aws_instance.win2k8.private_ip} ${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
-
-
-  # "${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
-  # password = "${rsadecrypt(aws_instance.win2k8.password_data, file("${var.ssh_private_key}"))}"
 }
-
-# output "connect_cmd" {
-#   value = "rdesktop -g 1600x900 -u Administrator -x l ${aws_instance.purgenol_win2k8r2.public_ip}"
-# }
 
 ##### providers
 
@@ -87,7 +88,7 @@ resource "aws_instance" "ubuntu" {
   instance_type = "t2.medium"
   vpc_security_group_ids = ["${aws_security_group.r00tz2018_ubuntu.id}"]
   subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
-  private_ip = "10.0.0.${count.index + 110}"
+  private_ip = "10.0.0.${count.index + ${var.ubuntu_base_private_ip}}"
   count = "${var.num_boxes}"
   key_name = "${aws_key_pair.r00tz2018_key.id}"
   # private_ip = "10.0.1.${lookup(var.private_ips, count.index) + 10}"
@@ -142,7 +143,7 @@ resource "aws_instance" "kali" {
 	instance_type = "t2.small"
 	vpc_security_group_ids = ["${aws_security_group.r00tz2018_kali.id}"]
 	subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
-	private_ip = "10.0.0.${count.index + 10}"
+	private_ip = "10.0.0.${count.index + ${var.kali_base_private_ip}}"
 	count = "${var.num_boxes}"
 	key_name = "${aws_key_pair.r00tz2018_key.id}"
 	# private_ip = "10.0.1.${lookup(var.private_ips, count.index) + 10}"
@@ -182,7 +183,7 @@ resource "aws_instance" "win2k8" {
   subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
   key_name = "${aws_key_pair.r00tz2018_key.id}"
   get_password_data = "true"
-  private_ip = "10.0.0.50"
+  private_ip = "${var.win2k8_private_ip}"
 
   tags {
     Name = "R00TZ2018_WIN2K8"
@@ -270,13 +271,6 @@ resource "aws_security_group" "r00tz2018_win2k8" {
     cidr_blocks = ["0.0.0.0/0"]
   } 
 
-  ingress {
-    from_port   = 5985
-    to_port     = 5986
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     from_port = 0
     to_port = 0
@@ -302,13 +296,6 @@ resource "aws_security_group" "r00tz2018_ubuntu" {
     protocol = -1
     cidr_blocks = ["10.0.0.0/24"]
   }
-
-  ingress {
-    from_port = 3389
-    to_port = 3389
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  } 
 
   ingress {
     from_port = 5901
@@ -342,13 +329,6 @@ resource "aws_security_group" "r00tz2018_kali" {
 		protocol = -1
 		cidr_blocks = ["10.0.0.0/24"]
 	}
-
-	ingress {
-		from_port = 3389
-		to_port = 3389
-		protocol = "tcp"
-		cidr_blocks = ["0.0.0.0/0"]
-	}	
 
   ingress {
     from_port = 5901
