@@ -219,7 +219,6 @@ netstat -ltnup
 ```
 
 This will display all the open sockets on our system. Are there any interesting ports open? How about port 21? That port is designated as the port for FTP, or File Transfer Protocol. You should see the PID and name of the process that is listening on port 21 at the end of our output. Now that we know we are serving data to clients maybe we can find a vulnerability that allows us to compromise their system. Let's say we analyze some traffic data and are able to determine that the hosts on this network use an ftp client called FTPShell 6.7. What can we do with that information? 
-
 Navigate to www.exploit-db.com and search for FTPShell Client. There are a slew of exploits for this client! Lets look at the exploit for the Client version 6.7. We can see that there is a big bytecode blob made with a tool called msfvenom that opens calc.exe on the victim. Opening calc.exe however, does not gain us additional access to the network. We want to open a shell like the one we have on the pivot box! On our Kali box, run the following command:
 ```
 sudo ifconfig eth0
@@ -270,6 +269,21 @@ Now we have a fully powered meterpreter shell on the target! While not something
 
 The attackers have breached our network! We need to discover how, and more importantly, why they did it. We are going to gather information from a few different sources to trace their steps and patch the holes they used to gain access. Lets start by opening the .pcap file we captured via wireshark. Begin exploring the interface and take note of anything interesting. There is a lot of information in these packet captures so lets break it down. The first thing you should notice is a large group of red and grey packets. The source of the grey packets will be your box and source of the red boxes is the target. If you look at the info column you'll see the flags for the grey packets are SYN and the red has RST,ACK. Additionally, if you look at the destination port on all the grey packets you might notice that all the destination ports are seemingly random. Lastly, the time between the packets sent is very small. With all these details we can ascertain that this is a SYN scan on our box. If you look at the SYN packet sent to port 22, instead of sending back a RST, our box responds with a SYN,ACK. These differences are what allow nmap to determine which ports are open/listening as in, there is a process or program using that port to establish communication.
 ![synscan.png](/img/synscan.PNG)
+
+Wireshark is nice enough to label some of the protocols for us. For example traffic occuring over port 80 that has web client headers will show up as HTTP in the 
+'Protocol' column. Other ports like 21 will often show up as SSH. At this point we can assume the attacker knows what software we are running. We can see that they 
+have made some GET requests to our Drupal web server on port 80. Since we are also the attackers (don't tell your boss) we happen to know that is exactly how the 
+server was pwned. Because we know that the attack happens on the Drupal server, we can apply a wireshark filter to get rid of all those noisy SYN scan packets. 
+In the filter box at the top, type in
+```http```
+and press enter. Now we only see all the web request traffic. 
+A useful feature of Wireshark is the ability to 'follow' a stream. Right click on an HTTP packet you find interesting and select 'Follow -> TCP Stream'. 
+This will automatically apply a filter for the packets in that stream as well as provide a window that displays all the layer 7 data transmitted in that conversation. 
+![nmap.png](/img/nmap.png)
+Here we can see that the attacker is making a request for the page /nmaplowercheck1533515323. Even to someone with minimal computer knowledge this would seem like a 
+suspicious page to request. Depending on how the server responds, the attacker may be able to glean additional information about the version of Drupal we are hosting.
+Luckily we have prevented the public from gaining additional information beyond what is in the HTTP response headers, Drupal 8.  
+
 
 # Protect
 
