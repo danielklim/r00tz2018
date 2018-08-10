@@ -1,0 +1,5 @@
+start(r"C:\Program Files (x86)\FTPShellClient\ftpshell.exe")
+start("notepad")
+click("File", "Open")
+write("ips.txt", into="File name")
+press(ENTER)
