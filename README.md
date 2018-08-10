@@ -284,11 +284,11 @@ Here we can see that the attacker is making a request for the page /nmaplowerche
 suspicious page to request. Depending on how the server responds, the attacker may be able to glean additional information about the version of Drupal we are hosting.
 Luckily we have prevented the public from gaining additional information beyond what is in the HTTP response headers, Drupal 8. 
 
-![database_leak.png](/img/database_leak.png)
+![database_leak.png](/img/database_leak.PNG)
 We can follow the conversation from the point where we identify the Drupal server to where we are leaking information about the database. However, as a defender it is generally unwise to make your own patches to broken software (unless you have the source code) and the best recommendation for fixing an issue like this is either change your software or ensure you have the latest version.
 
 Lastly, lets look at the FTP attack. The first thing you should notice is that under the protocol column some traffic is labeled as FTP. Follow the FTP stream and lets look at the communication.
-![ftp_pwn.png](/img/ftp_pwn.png)
+![ftp_pwn.png](/img/ftp_pwn.PNG)
 We see some normal client server communication but then suddenly a big blob of nonsense followed by "is the current directory". This is what the shell code we generated previously looks like when displayed as ascii. The average person will not know that the bits they are looking at are in face the bytecode for a meterpreter shell. It is very easy to see what happened here. We can see the client reach out to the server and receive a malicious payload back under the guise of a simple 'ls' command. 
 
 
