@@ -279,7 +279,7 @@ In the filter box at the top, type in
 and press enter. Now we only see all the web request traffic. 
 A useful feature of Wireshark is the ability to 'follow' a stream. Right click on an HTTP packet you find interesting and select 'Follow -> TCP Stream'. 
 This will automatically apply a filter for the packets in that stream as well as provide a window that displays all the layer 7 data transmitted in that conversation. 
-![nmap.png](/img/nmap.png)
+![nmap.png](/img/nmap.PNG)
 Here we can see that the attacker is making a request for the page /nmaplowercheck1533515323. Even to someone with minimal computer knowledge this would seem like a 
 suspicious page to request. Depending on how the server responds, the attacker may be able to glean additional information about the version of Drupal we are hosting.
 Luckily we have prevented the public from gaining additional information beyond what is in the HTTP response headers, Drupal 8.  
