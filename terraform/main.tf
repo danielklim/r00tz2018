@@ -15,10 +15,10 @@ variable "aws_secret_key" {
   type = "string"
 }
 
-variable "win2k8_admin_password" {
-  description = "Windows admin password."
-  type = "string"
-}
+# variable "win2k8_admin_password" {
+#   description = "Windows admin password."
+#   type = "string"
+# }
 
 variable "kali_user_password" {
   description = "Password for users on Kali boxes."
@@ -45,18 +45,6 @@ variable "win2k8_private_ip" {
   description = "win2k8 private ip"
   type = "string"
   default = "10.0.0.20"
-}
-
-variable "ubuntu_base_private_ip" {
-  description = "ubuntu private ip base"
-  type = "string"
-  default = "10.0.0.10"
-}
-
-variable "kali_base_private_ip" {
-  description = "kali private ip base"
-  type = "string"
-  default = "10.0.0.110"
 }
 
 ##### output
@@ -88,7 +76,7 @@ resource "aws_instance" "ubuntu" {
   instance_type = "t2.medium"
   vpc_security_group_ids = ["${aws_security_group.r00tz2018_ubuntu.id}"]
   subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
-  private_ip = "10.0.0.${count.index + ${var.ubuntu_base_private_ip}}"
+  private_ip = "10.0.0.${count.index + 10}"
   count = "${var.num_boxes}"
   key_name = "${aws_key_pair.r00tz2018_key.id}"
   # private_ip = "10.0.1.${lookup(var.private_ips, count.index) + 10}"
@@ -143,7 +131,7 @@ resource "aws_instance" "kali" {
 	instance_type = "t2.small"
 	vpc_security_group_ids = ["${aws_security_group.r00tz2018_kali.id}"]
 	subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
-	private_ip = "10.0.0.${count.index + ${var.kali_base_private_ip}}"
+	private_ip = "10.0.0.${count.index + 110}"
 	count = "${var.num_boxes}"
 	key_name = "${aws_key_pair.r00tz2018_key.id}"
 	# private_ip = "10.0.1.${lookup(var.private_ips, count.index) + 10}"
@@ -164,13 +152,13 @@ resource "aws_instance" "kali" {
 
   provisioner "file" {
     source      = "kali/setup.sh"
-    destination = "/root/setup.sh"
+    destination = "/home/ec2-user/setup.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod 700 /home/root/setup.sh",
-      "sudo bash /home/root/setup.sh"
+      "chmod 700 /home/ec2-user/setup.sh",
+      "sudo bash /home/ec2-user/setup.sh"
     ]
   }
 }

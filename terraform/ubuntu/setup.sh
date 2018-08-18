@@ -6,6 +6,20 @@ apt-get -qq update
 
 apt-get -qq install -y nginx php-fpm php-mysql mysql-server-5.7 vim php7.2-dom php7.2-gd php7.2-simplexml vsftpd
 
+SRCDIR=/home/ubuntu
+WWWDIR=/var/www/html
+DRUPALTAR=drupal-pewpewkittens.tar.gz
+DRUPALSQL=drupal-pewpewkittens.sql
+
+mysql -u root <<-EOF
+CREATE DATABASE drupal8 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER drupal8@localhost IDENTIFIED BY '$PASSWORD';
+GRANT ALL ON drupal8.* TO 'drupal8'@'localhost' IDENTIFIED BY '$PASSWORD';
+FLUSH PRIVILEGES;
+EOF
+
+mysql -u root drupal8 < $SRCDIR/$DRUPALSQL
+
 # UPDATE mysql.user SET authentication_string=PASSWORD('1q2w3e4r') WHERE User='root';
 # SET PASSWORD FOR 'root'@'localhost' = PASSWORD('1q2w3e4r');
 mysql -u root <<-EOF
@@ -14,17 +28,7 @@ DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.
 DELETE FROM mysql.user WHERE User='';
 DELETE FROM mysql.db WHERE Db='test' OR Db='test_%';
 FLUSH PRIVILEGES;
-
-CREATE DATABASE drupal8 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-CREATE USER drupal8@localhost IDENTIFIED BY '$PASSWORD';
-GRANT ALL ON drupal8.* TO 'drupal8'@'localhost' IDENTIFIED BY '$PASSWORD';
-FLUSH PRIVILEGES;
 EOF
-
-SRCDIR=/home/ubuntu
-WWWDIR=/var/www/html
-DRUPALTAR=drupal-pewpewkittens.tar.gz
-DRUPALSQL=drupal-pewpewkittens.sql
 
 # cd /home/ubuntu
 cp $SRCDIR/nginx.conf /etc/nginx/sites-enabled/
@@ -35,8 +39,6 @@ rm /etc/nginx/sites-enabled/default -rf
 cp $SRCDIR/$DRUPALTAR $WWWDIR/
 tar -xf $WWWDIR/$DRUPALTAR -C $WWWDIR
 sudo chown www-data:www-data -R $WWWDIR
-
-mysql -u root drupal8 < $SRCDIR/$DRUPALSQL
 
 # cd /var/www/html
 # wget https://ftp.drupal.org/files/projects/drupal-8.5.0.tar.gz
@@ -53,7 +55,7 @@ apt-get -yqq install xfce4 xfce4-goodies tightvncserver
 
 mkdir -p /root/.vnc
 vncpasswd -f <<< $PASSWORD > "/root/.vnc/passwd"
-chmod 600 ~/.vnc/passwd
+chmod 600 /root/.vnc/passwd
 
 cat << EOF > /root/.vnc/xstartup
 #!/bin/sh
@@ -63,7 +65,7 @@ xsetroot -solid grey
 startxfce4 &
 EOF
 
-vncserver -geometry 1600x1200
+sudo -u root vncserver -geometry 1600x1200 &
 
 # https://www.hiroom2.com/2018/04/29/ubuntu-1804-xrdp-gnome-en/
 # cat <<EOF > ~/.xsessionrc
