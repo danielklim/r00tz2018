@@ -128,7 +128,7 @@ resource "aws_instance" "ubuntu" {
 resource "aws_instance" "kali" {
 	# kali 2018.1
 	ami = "ami-10e00b6d"
-	instance_type = "t2.small"
+	instance_type = "t2.medium"
 	vpc_security_group_ids = ["${aws_security_group.r00tz2018_kali.id}"]
 	subnet_id = "${aws_subnet.r00tz2018_subnet.id}"
 	private_ip = "10.0.0.${count.index + 110}"

@@ -57,23 +57,28 @@ mkdir -p /root/.vnc
 vncpasswd -f <<< $PASSWORD > "/root/.vnc/passwd"
 chmod 600 /root/.vnc/passwd
 
-cat << EOF > /root/.vnc/xstartup
-#!/bin/sh
+# cat << EOF > /root/.vnc/xstartup
+# #!/bin/sh
 
-xrdb $HOME/.Xresources
-xsetroot -solid grey
-startxfce4 &
-EOF
+# xrdb /root/.Xresources
+# xsetroot -solid grey
+# startxfce4 &
+# EOF
 
-sudo -u root vncserver -geometry 1600x1200 &
-
+sudo -i -u root vncserver -geometry 1600x1200 &
 # https://www.hiroom2.com/2018/04/29/ubuntu-1804-xrdp-gnome-en/
+
 # cat <<EOF > ~/.xsessionrc
 # export GNOME_SHELL_SESSION_MODE=ubuntu
 # export XDG_CURRENT_DESKTOP=ubuntu:GNOME
 # export XDG_DATA_DIRS=${D}
 # export XDG_CONFIG_DIRS=/etc/xdg/xdg-ubuntu:/etc/xdg
 # EOF
+
+######
+# may need to also set UsePAM 
+echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+systemctl restart ssh
 
 ######
 DEBIAN_FRONTEND=noninteractive apt-get -yq install wireshark tshark
