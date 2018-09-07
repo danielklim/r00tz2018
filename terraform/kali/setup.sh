@@ -11,8 +11,9 @@ apt-get -qq update
 
 mkdir -p /root/.vnc
 vncpasswd -f <<< $PASSWORD > "/root/.vnc/passwd"
-chmod 600 ~/.vnc/passwd
-vncserver -geometry 1600x1200
+chmod 600 /root/.vnc/passwd
+
+sudo -i -u root vncserver -geometry 1600x1200 &
 
 # DEBIAN_FRONTEND=noninteractive apt-get -yq install xrdp
 
