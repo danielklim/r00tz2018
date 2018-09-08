@@ -286,6 +286,27 @@ Let us now switch sides and look at what just happened from the perspective of a
 The attackers have breached our network! We need to discover how, and more importantly, why they did it. We are going to gather information from a few different sources to trace their steps and patch the holes they used to gain access. Lets start by opening the .pcap file we captured via wireshark. Begin exploring the interface and take note of anything interesting. There is a lot of information in these packet captures so lets break it down. The first thing you should notice is a large group of red and grey packets. The source of the grey packets will be your box and source of the red boxes is the target. If you look at the info column you'll see the flags for the grey packets are SYN and the red has RST,ACK. Additionally, if you look at the destination port on all the grey packets you might notice that all the destination ports are seemingly random. Lastly, the time between the packets sent is very small. With all these details we can ascertain that this is a SYN scan on our box. If you look at the SYN packet sent to port 22, instead of sending back a RST, our box responds with a SYN,ACK. These differences are what allow nmap to determine which ports are open/listening as in, there is a process or program using that port to establish communication.
 ![synscan.png](/img/synscan.PNG)
 
+Wireshark is nice enough to label some of the protocols for us. For example traffic occuring over port 80 that has web client headers will show up as HTTP in the 
+'Protocol' column. Other ports like 21 will often show up as SSH. At this point we can assume the attacker knows what software we are running. We can see that they 
+have made some GET requests to our Drupal web server on port 80. Since we are also the attackers (don't tell your boss) we happen to know that is exactly how the 
+server was pwned. Because we know that the attack happens on the Drupal server, we can apply a wireshark filter to get rid of all those noisy SYN scan packets. 
+In the filter box at the top, type in
+```http```
+and press enter. Now we only see all the web request traffic. 
+A useful feature of Wireshark is the ability to 'follow' a stream. Right click on an HTTP packet you find interesting and select 'Follow -> TCP Stream'. 
+This will automatically apply a filter for the packets in that stream as well as provide a window that displays all the layer 7 data transmitted in that conversation. 
+![nmap.png](/img/nmap.PNG)
+Here we can see that the attacker is making a request for the page /nmaplowercheck1533515323. Even to someone with minimal computer knowledge this would seem like a 
+suspicious page to request. Depending on how the server responds, the attacker may be able to glean additional information about the version of Drupal we are hosting.
+Luckily we have prevented the public from gaining additional information beyond what is in the HTTP response headers, Drupal 8. 
+
+![database_leak.png](/img/database_leak.PNG)
+We can follow the conversation from the point where we identify the Drupal server to where we are leaking information about the database. However, as a defender it is generally unwise to make your own patches to broken software (unless you have the source code) and the best recommendation for fixing an issue like this is either change your software or ensure you have the latest version.
+
+Lastly, lets look at the FTP attack. The first thing you should notice is that under the protocol column some traffic is labeled as FTP. Follow the FTP stream and lets look at the communication.
+![ftp_pwn.png](/img/ftp_pwn.PNG)
+We see some normal client server communication but then suddenly a big blob of nonsense followed by "is the current directory". This is what the shell code we generated previously looks like when displayed as ascii. The average person will not know that the bits they are looking at are in face the bytecode for a meterpreter shell. It is very easy to see what happened here. We can see the client reach out to the server and receive a malicious payload back under the guise of a simple 'ls' command. 
+
 # Protect & Respond
 
 # Takeaways 
